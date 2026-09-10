@@ -45,6 +45,28 @@ const today=()=>new Date().toLocaleDateString("sv-SE");
 const esc=s=>String(s??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const localDay=r=>String(r.work_date||"").slice(0,10);
 const sum=(rs,k)=>rs.reduce((a,r)=>a+(Number(r[k])||0),0);
+function machineNameFromRecord(r){
+  const raw=String(r.raw_data||"");
+  const lines=raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+
+  // 例: (東京喰種   設定) / (北斗   リセ)
+  for(const line of lines){
+    const m=line.match(/^[（(]\s*([^()（）]+?)\s{2,}[^()（）]*[）)]$/);
+    if(m){
+      const name=m[1].trim();
+      if(name && !/^\d+\s*:/.test(name)) return name;
+    }
+  }
+
+  // 空白1つの形式にも対応
+  for(const line of lines){
+    const m=line.match(/^[（(]\s*(.+?)\s+(設定(?:[1-6])?|リセ|AT間|渡り歩き|強演出|天井狙い)\s*[）)]$/);
+    if(m) return m[1].trim();
+  }
+
+  return String(r.machine_name||"").trim() || "機種不明";
+}
+
 function mondayOf(day){const [y,m,d]=day.split("-").map(Number),dt=new Date(y,m-1,d),dow=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-dow);return dt.toLocaleDateString("sv-SE")}
 function endOfWeek(day){const s=mondayOf(day),[y,m,d]=s.split("-").map(Number),dt=new Date(y,m-1,d);dt.setDate(dt.getDate()+6);return dt.toLocaleDateString("sv-SE")}
 function inPeriod(r){const d=localDay(r),t=today();if(mode==="day")return d===t;if(mode==="week")return d>=mondayOf(t)&&d<=endOfWeek(t);if(mode==="month")return d.slice(0,7)===t.slice(0,7);return true}
@@ -63,7 +85,7 @@ function metricParts(rs,name){
   return [rate?rate.toFixed(1):"-",support?(acquired/support).toFixed(2):"-"];
 }
 function teamMachineText(periodRecords){
-  const byMachine={};for(const r of periodRecords)(byMachine[r.machine_name||"機種不明"]??=[]).push(r);
+  const byMachine={};for(const r of periodRecords)(byMachine[machineNameFromRecord(r)]??=[]).push(r);
   return Object.keys(byMachine).sort().map(name=>{
     const all=byMachine[name], head=`◆${name}◆${metricParts(all,name).join("/")}◆`;
     const lines=members.map(m=>{const mr=all.filter(r=>Number(r.member_id)===Number(m.id));return `${m.name}\t/${mr.length?metricParts(mr,name).join("/"):"—"}`});
@@ -71,7 +93,7 @@ function teamMachineText(periodRecords){
   }).join("\n\n");
 }
 function renderTeamMachines(periodRecords){
-  const byMachine={};for(const r of periodRecords)(byMachine[r.machine_name||"機種不明"]??=[]).push(r);
+  const byMachine={};for(const r of periodRecords)(byMachine[machineNameFromRecord(r)]??=[]).push(r);
   const names=Object.keys(byMachine).sort();
   $("teamMachineRows").innerHTML=names.length?names.map(name=>{
     const all=byMachine[name], metric=metricParts(all,name).join(" / ");
@@ -80,8 +102,8 @@ function renderTeamMachines(periodRecords){
   }).join(""):`<div class="emptymsg">この期間の班データはありません</div>`;
 }
 function render(){const rs=visibleRecords(),g=sum(rs,"total_games"),days=[...new Set(rs.map(localDay))].length,avg=days?g/days:0;$("games").textContent=Math.round(g).toLocaleString()+"G";$("avgGames").textContent=Math.round(avg).toLocaleString()+"G";$("days").textContent=days+"日";$("count").textContent=rs.length+"件";$("periodNote").innerHTML=periodLabel();
-  const byMachine={};for(const r of rs)(byMachine[r.machine_name||"機種不明"]??=[]).push(r);const names=Object.keys(byMachine).sort();$("machineRows").innerHTML=names.length?names.map(n=>`<div class="row"><span><span class="machine">${esc(n)}</span><br><span class="sub">${byMachine[n].length}件 / ${sum(byMachine[n],"total_games").toLocaleString()}G</span></span><span class="right"><b>${machineMetric(byMachine[n],n)}</b><br><span class="sub">${n==="北斗"||n==="モンキー"?"回転率 / 2平均 / 1平均":"回転率 / 純増"}</span></span></div>`).join(""):`<div class="emptymsg">この期間のデータはありません</div>`;
-  const nameMap=Object.fromEntries(members.map(m=>[m.id,m.name]));$("recordRows").innerHTML=rs.length?rs.slice().sort((a,b)=>String(b.work_date).localeCompare(String(a.work_date))||Number(b.id)-Number(a.id)).map(r=>`<div class="row"><span><span class="machine">${esc(r.machine_name||"機種不明")}</span><br><span class="sub">${esc(r.work_date)} / ${esc(r.store_name||"")}${r.machine_number?" #"+esc(r.machine_number):""}${scope==="team"?" / "+esc(nameMap[r.member_id]||""):""}</span></span><span class="right"><b>${Number(r.total_games||0).toLocaleString()}G</b><br><span class="sub">通常 ${Number(r.normal_games||0).toLocaleString()}G</span><br><button class="deleteBtn" data-record-id="${Number(r.id)}" data-record-label="${esc((nameMap[r.member_id]||me.name)+" / "+(r.machine_name||"機種不明")+" / "+r.work_date)}">削除</button></span></div>`).join(""):`<div class="emptymsg">この期間のデータはありません</div>`;
+  const byMachine={};for(const r of rs)(byMachine[machineNameFromRecord(r)]??=[]).push(r);const names=Object.keys(byMachine).sort();$("machineRows").innerHTML=names.length?names.map(n=>`<div class="row"><span><span class="machine">${esc(n)}</span><br><span class="sub">${byMachine[n].length}件 / ${sum(byMachine[n],"total_games").toLocaleString()}G</span></span><span class="right"><b>${machineMetric(byMachine[n],n)}</b><br><span class="sub">${n==="北斗"||n==="モンキー"?"回転率 / 2平均 / 1平均":"回転率 / 純増"}</span></span></div>`).join(""):`<div class="emptymsg">この期間のデータはありません</div>`;
+  const nameMap=Object.fromEntries(members.map(m=>[m.id,m.name]));$("recordRows").innerHTML=rs.length?rs.slice().sort((a,b)=>String(b.work_date).localeCompare(String(a.work_date))||Number(b.id)-Number(a.id)).map(r=>`<div class="row"><span><span class="machine">${esc(machineNameFromRecord(r))}</span><br><span class="sub">${esc(r.work_date)} / ${esc(r.store_name||"")}${r.machine_number?" #"+esc(r.machine_number):""}${scope==="team"?" / "+esc(nameMap[r.member_id]||""):""}</span></span><span class="right"><b>${Number(r.total_games||0).toLocaleString()}G</b><br><span class="sub">通常 ${Number(r.normal_games||0).toLocaleString()}G</span><br><button class="deleteBtn" data-record-id="${Number(r.id)}" data-record-label="${esc((nameMap[r.member_id]||me.name)+" / "+machineNameFromRecord(r)+" / "+r.work_date)}">削除</button></span></div>`).join(""):`<div class="emptymsg">この期間のデータはありません</div>`;
   document.querySelectorAll(".deleteBtn").forEach(btn=>btn.onclick=async()=>{const id=Number(btn.dataset.recordId),label=btn.dataset.recordLabel;if(!confirm(`${label}\n\nこの稼働記録を削除しますか？`))return;btn.disabled=true;btn.textContent="削除中…";const {error}=await sb.from("records").delete().eq("id",id);if(error){alert("削除に失敗しました: "+error.message);btn.disabled=false;btn.textContent="削除";return;}records=records.filter(r=>Number(r.id)!==id);render();});
   const isTeam=scope==="team"&&me.role==="admin";
   const selectedMember=selectedMemberId==null?null:members.find(m=>Number(m.id)===Number(selectedMemberId));
