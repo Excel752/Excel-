@@ -534,11 +534,11 @@ function buildHistoryGhoul(r) {
       ri++;
     } else if (hasAT) {
       const ren = rens[ri] !== undefined ? rens[ri] : 1;
-      suffix = ren >= 2 ? `###${ren}` : "";
+      suffix = ren >= 3 ? `###${ren - 1}` : "";
       ri++;
     } else if (!hasCZ) {
       const ren = rens[ri] !== undefined ? rens[ri] : 1;
-      suffix = ren >= 2 ? `###${ren}` : "";
+      suffix = ren >= 3 ? `###${ren - 1}` : "";
       ri++;
     }
     return `${g}${part}${suffix}`;
@@ -672,7 +672,7 @@ function generateOutput(machine, r, fields) {
   }
   if (machine === "ghoul") {
     if (r.ghoulSetting) {
-      return `機種番号3818\n計算条件1\n(東京喰種  設定${r.ghoulSetting} )\n(1:RB 2:ART)\n\n機械割#${r.kikaiwari || ""}\n仕事量同集計\n総回転数${r.total_end}\n\n獲得玉###${r.getRaw || ""}\n\n残玉${r.zandama}\n貯玉${prev}${mochikomi}${mochidashi}\n現金${cash}\n\n${buildHistoryGhoul(r)}\n\n着席時回転数${r.start}\n着席時総回転数${r.total_start}\n換金率${kinsen1}#${kinsen2}\n貸玉${kashi1}#${kashi2}${footer ? "\n\n" + footer : ""}`;
+      return `機種番号3818\n計算条件1\n(東京喰種  設定 )\n(1:RB 2:ART)\n\n機械割###${r.kikaiwari || ""}\n仕事量同集計\n総回転数${r.total_end}\n\n獲得玉###${r.getRaw || ""}\n\n残玉${r.zandama}\n貯玉${prev}${mochikomi}${mochidashi}\n現金${cash}\n\n${buildHistoryGhoul(r)}\n\n着席時回転数${r.start}\n着席時総回転数${r.total_start}\n換金率${kinsen1}#${kinsen2}\n貸玉${kashi1}#${kashi2}${footer ? "\n\n" + footer : ""}`;
     }
     const kitai = formatKitai(manualKitai || r.autoKitai || "");
     const ml = r.watari ? "渡り歩き" : r.ghoulMode === "at" ? "AT間" : "リセ";
@@ -684,7 +684,7 @@ function generateOutput(machine, r, fields) {
     return `機種番号3818\n計算条件1\n(鉄拳　${ml})\n(1:BB 2:AT)\n\n等価期待値${kitai}\n仕事量同集計\n総回転数${r.total_end}\n\n獲得玉###${r.getRaw || ""}\n\n残玉${r.zandama}\n貯玉${prev}${mochikomi}${mochidashi}\n現金${cash}\n\n${buildHistoryTekken(r)}\n\n着席時回転数${r.start}\n着席時総回転数\n換金率${kinsen1}#${kinsen2}\n貸玉${kashi1}#${kashi2}${footer ? "\n\n" + footer : ""}`;
   }
   if (machine === "karakuri2") {
-    return `機種番号3818\n計算条件1\n(からサー2 ${r.karakuri2Label || ""})\n(1:RB 2:ART)\n\n機械割#${r.kikaiwari || ""}\n仕事量同集計\n総回転数${r.total_end}\n\n獲得玉###${r.getRaw || ""}\n\n残玉${r.zandama}\n貯玉${prev}${mochikomi}${mochidashi}\n現金${cash}\n\n${buildHistoryGhoul(r)}\n\n着席時回転数${r.start}\n着席時総回転数${r.total_start}\n換金率${kinsen1}#${kinsen2}\n貸玉${kashi1}#${kashi2}${footer ? "\n\n" + footer : ""}`;
+    return `機種番号3818\n計算条件1\n(からサー2 ${r.karakuri2Label || ""})\n(1:RB 2:ART)\n\n機械割###${r.kikaiwari || ""}\n仕事量同集計\n総回転数${r.total_end}\n\n獲得玉###${r.getRaw || ""}\n\n残玉${r.zandama}\n貯玉${prev}${mochikomi}${mochidashi}\n現金${cash}\n\n${buildHistoryGhoul(r)}\n\n着席時回転数${r.start}\n着席時総回転数${r.total_start}\n換金率${kinsen1}#${kinsen2}\n貸玉${kashi1}#${kashi2}${footer ? "\n\n" + footer : ""}`;
   }
   if (machine === "madomagi") {
     const kitai = formatKitai(manualKitai || r.autoKitai || "");
